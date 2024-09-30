@@ -28,13 +28,13 @@ jobs:
           target-ros2-distro: ${{ matrix.ros_distribution }}
           no-symlink-install: true
 
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v4
         with:
           name: colcon-logs
           path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/log
         if: always() # upload the logs even when the build fails
 
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v4
         with:
           name: install
           path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/install
@@ -92,13 +92,13 @@ jobs:
           target-ros2-distro: ${{ matrix.ros_distribution }}
           no-symlink-install: true
       
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v4
         with:
           name: colcon-logs
           path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/log
         if: always() # upload the logs even when the build fails
 
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v4
         with:
           name: install
           path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/install
