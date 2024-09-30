@@ -11,13 +11,6 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
-# if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-#   add_compile_options(-Wall -Wextra -Wpedantic)
-# endif()
-
-# 添加这一行来抑制警告
-cmake_policy(SET CMP0148 NEW)
-
 # find dependencies
 find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
@@ -62,13 +55,25 @@ target_include_directories(serial PRIVATE include)
 
 # 生成rs232.cpp的可执行文件
 add_executable(rs232_driver src/rs232.cpp)
-target_link_libraries(rs232_driver rclcpp geometry_msgs serial)
+target_include_directories(rs232_driver PRIVATE include)
+ament_target_dependencies(rs232_driver rclcpp geometry_msgs)
+target_link_libraries(rs232_driver serial)
 
 install(TARGETS
   serial
-  rs232_driver
   ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib)
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
+install(TARGETS
+  rs232_driver
+  RUNTIME DESTINATION lib/${PROJECT_NAME})
+
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+  
 
 ## Install headers
 install(FILES include/serial/serial.h include/serial/v8stdint.h

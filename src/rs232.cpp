@@ -1,6 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <serial/serial.h>
+#include <mutex>
 
 // 定义串口对象
 std::shared_ptr<serial::Serial> ser;
@@ -8,6 +9,11 @@ std::shared_ptr<serial::Serial> ser;
 geometry_msgs::msg::Twist cmd_vel_msg;
 // 定义ROS2的时间戳变量
 rclcpp::Time last_cmd_vel_time;
+
+std::shared_ptr<rclcpp::Node> node;
+
+// 定义全局锁
+std::mutex serial_mutex;
 
 // 车的两轮宽度
 double wheel_width;
@@ -100,17 +106,23 @@ void calculateWheelSpeeds(double wheel_width, double wheel_diameter, double spee
 void write_to_serial()
 {   
     rclcpp::Time current_time = node->now();
-    if ((current_time - last_cmd_vel_time).seconds() > 0.5) {
-        RCLCPP_WARN(rclcpp::get_logger("rs232_node"), "cmd_vel not updating");
-        return;
-    }
 
     double left_velocity, right_velocity;
     double speed, rotate;
+    
+    std::unique_lock<std::mutex> lock(serial_mutex);
     speed = cmd_vel_msg.linear.x;
     rotate = cmd_vel_msg.angular.z;
+    lock.unlock();
 
     calculateWheelSpeeds(wheel_width, wheel_diameter, speed, rotate, left_velocity, right_velocity);
+
+    if ((current_time - last_cmd_vel_time).seconds() > 0.5) {
+        RCLCPP_WARN(rclcpp::get_logger("rs232_node"), "cmd_vel not updating");
+        // 将left_velocity和right_velocity 改为0
+        left_velocity = 0;
+        right_velocity = 0;
+    }
 
     int left_v, right_v;
     left_v = left_velocity / 0.19 * 100;
@@ -139,7 +151,10 @@ void write_to_serial()
 // 定义回调函数，当接收到cmd_vel消息时调用
 void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
 {
+    std::unique_lock<std::mutex> lock(serial_mutex);
+    last_cmd_vel_time = node->now();
     cmd_vel_msg = *msg;
+    lock.unlock();
     RCLCPP_INFO(rclcpp::get_logger("rs232_node"), "Received cmd_vel: linear.x = %.2f, angular.z = %.2f", msg->linear.x, msg->angular.z);
 }
 
@@ -153,7 +168,7 @@ int main(int argc, char *argv[])
     init_data();
     
     // 创建节点实例
-    auto node = rclcpp::Node::make_shared("rs232_node");
+    node.reset(new rclcpp::Node("rs232_node"));
 
     // 从参数服务器获取串口名称、波特率和超时时间
     std::string port_name;
@@ -187,7 +202,7 @@ int main(int argc, char *argv[])
     auto subscription = node->create_subscription<geometry_msgs::msg::Twist>(
         "cmd_vel", 10, cmd_vel_callback);
 
-    // 按照100Hz的频率循环
+    // 按照40Hz的频率循环
     rclcpp::Rate rate(40);
     while (rclcpp::ok()) {
         rclcpp::spin_some(node);
