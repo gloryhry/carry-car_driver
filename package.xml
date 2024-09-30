@@ -4,7 +4,7 @@
   <name>carry_along_car_driver</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="2365251585@qq.com">bz</maintainer>
+  <maintainer email="glory@hzbz.edu.eu.org">glory</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

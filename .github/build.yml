@@ -1,0 +1,45 @@
+name: ROS2 Build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up ROS2
+      uses: ros-tooling/setup-ros@0.2
+      with:
+        required-ros-distributions: foxy
+
+    - name: move codes to workspace
+      run: |
+        mkdir -p $GITHUB_WORKSPACE/ros2_ws/src
+        cd $GITHUB_WORKSPACE/ros2_ws/src/
+        git clone https://github.com/gloryhry/small_car_driver.git
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        cd $GITHUB_WORKSPACE/ros2_ws
+        rosdep update
+        rosdep install --from-paths src --ignore-src -r -y
+
+    - name: Build workspace
+      run: |
+        cd $GITHUB_WORKSPACE/ros2_ws
+        colcon build
+
+    - name: Archive build artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: ros2_build_artifacts
+        path: $GITHUB_WORKSPACE/ros2_ws/install
