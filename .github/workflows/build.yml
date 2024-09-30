@@ -9,37 +9,96 @@ on:
       - master
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  test: # Docker is not supported on macOS and Windows.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macOS-latest, windows-latest]
+        ros_distribution: # Only include ROS 2 distributions, as ROS 1 does not support macOS and Windows.
+          - humble
+          - iron
     steps:
-    - uses: actions/checkout@v2
+      - uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: ${{ matrix.ros_distribution }}
+      - name: build and test
+        uses: ros-tooling/action-ros-ci@v0.3
+        with:
+          package-name: carry_along_car_driver
+          target-ros2-distro: ${{ matrix.ros_distribution }}
+          no-symlink-install: true
 
-    - name: Set up ROS2
-      uses: ros-tooling/setup-ros@0.2
-      with:
-        required-ros-distributions: foxy
+      - uses: actions/upload-artifact@v1
+        with:
+          name: colcon-logs
+          path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/log
+        if: always() # upload the logs even when the build fails
 
-    - name: move codes to workspace
-      run: |
-        mkdir -p $GITHUB_WORKSPACE/ros2_ws/src
-        cd $GITHUB_WORKSPACE/ros2_ws/src/
-        git clone https://github.com/gloryhry/small_car_driver.git
+      - uses: actions/upload-artifact@v1
+        with:
+          name: install
+          path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/install
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        cd $GITHUB_WORKSPACE/ros2_ws
-        rosdep update
-        rosdep install --from-paths src --ignore-src -r -y
+  test_docker: # On Linux, iterates on all ROS 1 and ROS 2 distributions.
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ros_distribution:
+          - humble
+          - iron
+          - jazzy
+          - rolling
 
-    - name: Build workspace
-      run: |
-        cd $GITHUB_WORKSPACE/ros2_ws
-        colcon build
+        # Define the Docker image(s) associated with each ROS distribution.
+        # The include syntax allows additional variables to be defined, like
+        # docker_image in this case. See documentation:
+        # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-including-configurations-in-a-matrix-build
+        #
+        # Platforms are defined in REP 3 and REP 2000:
+        # https://ros.org/reps/rep-0003.html
+        # https://ros.org/reps/rep-2000.html
+        include:
+          # Humble Hawksbill (May 2022 - May 2027)
+          - docker_image: ubuntu:jammy
+            ros_distribution: humble
+            ros_version: 2
 
-    - name: Archive build artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: ros2_build_artifacts
-        path: $GITHUB_WORKSPACE/ros2_ws/install
+          # Iron Irwini (May 2023 - November 2024)
+          - docker_image: ubuntu:jammy
+            ros_distribution: iron
+            ros_version: 2
+
+          # Jazzy Jalisco (May 2024 - May 2029)
+          - docker_image: ubuntu:noble
+            ros_distribution: jazzy
+            ros_version: 2
+
+          # Rolling Ridley (No End-Of-Life)
+          - docker_image: ubuntu:noble
+            ros_distribution: rolling
+            ros_version: 2
+    container:
+      image: ${{ matrix.docker_image }}
+    steps:
+      - name: setup ROS environment
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: ${{ matrix.ros_distribution }}
+      - name: build and test ROS 2
+        if: ${{ matrix.ros_version == 2 }}
+        uses: ros-tooling/action-ros-ci@v0.3
+        with:
+          package-name: carry_along_car_driver
+          target-ros2-distro: ${{ matrix.ros_distribution }}
+          no-symlink-install: true
+      
+      - uses: actions/upload-artifact@v1
+        with:
+          name: colcon-logs
+          path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/log
+        if: always() # upload the logs even when the build fails
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: install
+          path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/install
