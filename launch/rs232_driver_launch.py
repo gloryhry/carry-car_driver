@@ -12,7 +12,7 @@ def generate_launch_description():
             name='rs232_driver_node',
             parameters=[
                 {'port': '/dev/tty'},
-                {'baudrate': 9600},
+                {'baudrate': 115200},
                 {'timeout': 1000},
                 {'wheel_width': 0.4},
                 {'wheel_diameter': 0.2}

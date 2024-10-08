@@ -59,6 +59,11 @@ target_include_directories(rs232_driver PRIVATE include)
 ament_target_dependencies(rs232_driver rclcpp geometry_msgs)
 target_link_libraries(rs232_driver serial)
 
+add_executable(rs485_driver src/rs485.cpp)
+target_include_directories(rs485_driver PRIVATE include)
+ament_target_dependencies(rs485_driver rclcpp geometry_msgs)
+target_link_libraries(rs485_driver serial)
+
 install(TARGETS
   serial
   ARCHIVE DESTINATION lib
@@ -67,6 +72,7 @@ install(TARGETS
 
 install(TARGETS
   rs232_driver
+  rs485_driver
   RUNTIME DESTINATION lib/${PROJECT_NAME})
 
 install(
