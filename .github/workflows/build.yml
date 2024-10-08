@@ -97,11 +97,11 @@ jobs:
       
       - uses: actions/upload-artifact@v4
         with:
-          name: colcon-logs
+          name: ${{ matrix.ros_distribution }}-colcon-logs
           path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/log
         if: always() # upload the logs even when the build fails
 
       - uses: actions/upload-artifact@v4
         with:
-          name: install
+          name: ${{ matrix.ros_distribution }}-install
           path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/install
