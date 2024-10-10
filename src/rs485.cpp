@@ -118,7 +118,7 @@ void write_to_serial()
     calculateWheelSpeeds(wheel_width, wheel_diameter, speed, rotate, left_velocity, right_velocity);
 
     if ((current_time - last_cmd_vel_time).seconds() > 0.5) {
-        RCLCPP_WARN(rclcpp::get_logger("rs232_node"), "cmd_vel not updating");
+        RCLCPP_WARN(node->get_logger(), "cmd_vel not updating");
         // 将left_velocity和right_velocity 改为0
         left_velocity = 0;
         right_velocity = 0;
@@ -155,7 +155,7 @@ void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     last_cmd_vel_time = node->now();
     cmd_vel_msg = *msg;
     lock.unlock();
-    RCLCPP_INFO(rclcpp::get_logger("rs232_node"), "Received cmd_vel: linear.x = %.2f, angular.z = %.2f", msg->linear.x, msg->angular.z);
+    RCLCPP_INFO(node->get_logger(), "Received cmd_vel: linear.x = %.2f, angular.z = %.2f", msg->linear.x, msg->angular.z);
 }
 
 int main(int argc, char *argv[])
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
     init_data();
     
     // 创建节点实例
-    node.reset(new rclcpp::Node("rs232_node"));
+    node.reset(new rclcpp::Node("rs485_driver"));
 
     // 从参数服务器获取串口名称、波特率和超时时间
     std::string port_name;
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
     // 初始化串口对象
     ser.reset(new serial::Serial(port_name, baud_rate, serial::Timeout::simpleTimeout(timeout)));
     if (!ser->isOpen()) {
-        RCLCPP_ERROR(rclcpp::get_logger("rs232_node"), "Can not open Serial port: %s", port_name.c_str());
+        RCLCPP_ERROR(node->get_logger(), "Can not open Serial port: %s", port_name.c_str());
         return -1;
     }
 
@@ -206,6 +206,7 @@ int main(int argc, char *argv[])
     rclcpp::Rate rate(40);
     while (rclcpp::ok()) {
         rclcpp::spin_some(node);
+        write_to_serial();
         rate.sleep();
     }
 

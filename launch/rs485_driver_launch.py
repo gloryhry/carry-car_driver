@@ -11,7 +11,7 @@ def generate_launch_description():
             executable='rs485_driver',
             name='rs485_driver_node',
             parameters=[
-                {'port': '/dev/tty'},
+                {'port': '/dev/ttyUSB0'},
                 {'baudrate': 115200},
                 {'timeout': 1000},
                 {'wheel_width': 0.4},
