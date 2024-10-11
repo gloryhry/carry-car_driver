@@ -2,6 +2,9 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <serial/serial.h>
 #include <mutex>
+#include <iostream>
+
+// #define Debug
 
 // 定义串口对象
 std::shared_ptr<serial::Serial> ser;
@@ -25,7 +28,7 @@ unsigned char data[35] = {0};
 
 void init_data()
 {
-    data[0] = 0x45;
+    data[0] = 0xA5;
     data[1] = 0x5A;
     // 控制命令
     data[2] = 0b01000001;
@@ -45,11 +48,11 @@ void init_data()
     data[13] = 0x00;
     int speed = 0;
     // 速度高字节
-    data[14] = speed >> 8 << 4 && 0xF0 + speed >> 8 && 0x0F;
+    data[14] = speed >> 8 << 4 & 0xF0 + speed >> 8 & 0x0F;
     // 速度左低字节
-    data[15] = speed && 0xFF;
+    data[15] = speed & 0xFF;
     // 速度右低字节
-    data[16] = speed && 0xFF;
+    data[16] = speed & 0xFF;
     
     // 后面都为0
     for(int index=17;index<32;index++)
@@ -92,14 +95,37 @@ uint16_t crc16(const uint8_t* data, size_t length) {
     return crc;
 }
 
+// 小车使用以下CRC16算法
+// CRC-16-XMODEM implementation
+uint16_t crc16_xmodem(const uint8_t* data, size_t length) {
+    uint16_t crc = 0x0000; // 初始值
+    uint16_t polynomial = 0x1021; // 多项式
+
+    for (size_t i = 0; i < length; ++i) {
+        crc ^= (uint16_t)data[i] << 8; // 将当前字节移到高位，与CRC寄存器进行异或
+
+        for (int j = 0; j < 8; ++j) {
+            if (crc & 0x8000) { // 判断最高位是否为1
+                crc = (crc << 1) ^ polynomial; // 左移1位后与多项式异或
+            } else {
+                crc <<= 1; // 左移1位
+            }
+        }
+    }
+
+    return crc;
+}
+
 void calculateWheelSpeeds(double wheel_width, double wheel_diameter, double speed, double rotate, double &left_wheel_speed, double &right_wheel_speed) {
     // 计算左轮和右轮的线速度
     double V_L = speed - (wheel_width * rotate) / 2.0;
     double V_R = speed + (wheel_width * rotate) / 2.0;
 
     // 将线速度转换为轮速
-    left_wheel_speed = V_L / (wheel_diameter / 2.0);
-    right_wheel_speed = V_R / (wheel_diameter / 2.0);
+    left_wheel_speed = V_L;
+    right_wheel_speed = V_R; 
+    // left_wheel_speed = V_L / (wheel_diameter / 2.0);
+    // right_wheel_speed = V_R / (wheel_diameter / 2.0);
 }
 
 // 定义函数，往RS232串口中写数据
@@ -133,16 +159,28 @@ void write_to_serial()
     right_v = std::max(-1000, std::min(right_v, 1000));
 
     // 速度高字节
-    data[14] = left_v >> 8 << 4 && 0xF0 + left_v >> 8 && 0x0F;
+    data[14] = left_v >> 8 << 4 & 0xF0 | right_v >> 8 & 0x0F;
     // 速度左低字节
-    data[15] = left_v && 0xFF;
+    data[15] = left_v & 0xFF;
     // 速度右低字节
-    data[16] = right_v && 0xFF;
+    data[16] = right_v & 0xFF;
 
     // 计算CRC
-    uint16_t crc = crc16(data, 32);
-    data[32] = crc >> 8;
-    data[33] = crc & 0xFF;
+    uint16_t crc = crc16_xmodem(data, 32);
+    data[32] = crc & 0xff;
+    data[33] = crc >> 8;
+
+#ifdef Debug
+    std::string output;
+    for(auto temp_data: data)
+    {
+        std::ostringstream oss;
+        // 设置流为16进制格式
+        oss << std::hex << (int)temp_data;
+        output = output + " 0x" + oss.str();
+    }
+    RCLCPP_INFO(node->get_logger(), output);
+#endif
 
     // 写入串口
     ser->write(data, sizeof(data));
