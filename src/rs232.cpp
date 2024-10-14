@@ -179,7 +179,7 @@ void write_to_serial()
         oss << std::hex << (int)temp_data;
         output = output + " 0x" + oss.str();
     }
-    RCLCPP_INFO(node->get_logger(), output);
+    RCLCPP_INFO_STREAM(node->get_logger(), output);
 #endif
 
     // 写入串口

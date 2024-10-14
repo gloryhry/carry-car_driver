@@ -184,7 +184,7 @@ void write_to_serial()
         oss << std::hex << (int)temp_data;
         output = output + " " + oss.str(); //0x
     }
-    RCLCPP_INFO(node->get_logger(), output);
+    RCLCPP_INFO_STEAM(node->get_logger(), output);
 #endif
 
     // 写入串口
@@ -276,7 +276,7 @@ int main(int argc, char *argv[])
     //     oss << std::hex << (int)temp;
     //     output = output + " 0x" + oss.str();
     // }
-    // RCLCPP_INFO(node->get_logger(), output);
+    // RCLCPP_INFO_STREAM(node->get_logger(), output);
 
     // 按照40Hz的频率循环
     rclcpp::Rate rate(40);
