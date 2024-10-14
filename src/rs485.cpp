@@ -4,7 +4,7 @@
 #include <mutex>
 #include <iostream>
 
-#define Debug
+// #define Debug
 
 // 定义串口对象
 std::shared_ptr<serial::Serial> ser;
@@ -32,7 +32,7 @@ void init_data()
     data[1] = 0x5A;
     // 控制命令
     data[2] = 0b11100001;
-    data[3] = 0x28;
+    data[3] = 0x1C;
     // 摄像头控制
     data[4] = 0b10110000;
     // 视频控制
@@ -198,7 +198,9 @@ void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     last_cmd_vel_time = node->now();
     cmd_vel_msg = *msg;
     lock.unlock();
+#ifdef Debug
     RCLCPP_INFO(node->get_logger(), "Received cmd_vel: linear.x = %.2f, angular.z = %.2f", msg->linear.x, msg->angular.z);
+#endif
 }
 
 int main(int argc, char *argv[])
@@ -245,7 +247,7 @@ int main(int argc, char *argv[])
     auto subscription = node->create_subscription<geometry_msgs::msg::Twist>(
         "cmd_vel", 10, cmd_vel_callback);
 
-    // test code
+    // // test code 摆臂移动  a5 5a 03 0f 30 80 23 00 c0 53 50 00 ef f6 55
     // unsigned char temp_data[22] = {0};
     // temp_data[0] = 0xa5;
     // temp_data[1] = 0x5a;
@@ -275,7 +277,6 @@ int main(int argc, char *argv[])
     //     output = output + " 0x" + oss.str();
     // }
     // RCLCPP_INFO(node->get_logger(), output);
-
 
     // 按照40Hz的频率循环
     rclcpp::Rate rate(40);

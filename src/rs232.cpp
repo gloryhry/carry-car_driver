@@ -32,7 +32,7 @@ void init_data()
     data[1] = 0x5A;
     // 控制命令
     data[2] = 0b01000001;
-    data[3] = 0x28;
+    data[3] = 0x1C;
     // 摄像头控制
     data[4] = 0b10110000;
     // 视频控制
@@ -193,7 +193,9 @@ void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     last_cmd_vel_time = node->now();
     cmd_vel_msg = *msg;
     lock.unlock();
+#ifdef Debug
     RCLCPP_INFO(node->get_logger(), "Received cmd_vel: linear.x = %.2f, angular.z = %.2f", msg->linear.x, msg->angular.z);
+#endif
 }
 
 int main(int argc, char *argv[])
